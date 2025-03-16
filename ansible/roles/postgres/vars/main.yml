@@ -1,0 +1,29 @@
+db_user: cytech_usr
+db_password: "password"
+db_name: cytech
+table_name: tablecytech
+user_name: "Omar"
+
+prerequisite_packages:
+  - python3
+  - python3-pip
+  - pip
+  - postgresql
+  - acl
+
+pip_packages:
+  - psycopg2-binary
+
+group_name: cytech_grp
+ssh_key_bits: 2048
+ssh_key_file: .ssh/id_rsa
+
+postgres_user: postgres
+
+sql_template_src: create_table.j2
+sql_script_dest: /tmp/create_table.sql
+
+postgresql_conf_path: /etc/postgresql/14/main/postgresql.conf
+pg_hba_template_src: pg_hba.conf.j2
+pg_hba_conf_path: /etc/postgresql/14/main/pg_hba.conf
+postgresql_port: 5432

@@ -1,0 +1,85 @@
+#SPDX-License-Identifier: MIT-0
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name: "{{ prerequisite_packages }}"
+    state: present
+    update_cache: yes
+
+- name: Install passlib using pip
+  ansible.builtin.pip:
+    name: "{{ pip_packages }}"
+    state: present
+
+- name: Créer un groupe nommé cytech_grp
+  ansible.builtin.group:
+    name: "{{ group_name }}"
+    state: present
+
+- name: creer user et afficher
+  ansible.builtin.user:
+    name: "{{ user_name }}"
+    password: "{{ db_password }}"
+    group: "{{ group_name }}"
+    generate_ssh_key: yes
+    ssh_key_bits: "{{ ssh_key_bits }}"
+    ssh_key_file: "{{ ssh_key_file }}"
+
+- name: Connect to database, create user
+  become: true
+  become_user: "{{ postgres_user }}"
+  community.postgresql.postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+
+- name: Create a PostgreSQL database
+  become_user: "{{ postgres_user }}"
+  become: true
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    owner: "{{ db_user }}"
+    state: present
+
+- name: Accorder tous les privilèges sur la base de données cytech à cytech_usr
+  become_user: "{{ postgres_user }}"
+  community.postgresql.postgresql_privs:
+    database: "{{ db_name }}"
+    privs: all
+    type: database
+    roles: "{{ db_user }}"
+    grant_option: no
+
+- name: Create SQL script from template
+  ansible.builtin.template:
+    src: "{{ sql_template_src }}"
+    dest: "{{ sql_script_dest }}"
+
+- name: Execute SQL script using PostgreSQL
+  become: true
+  become_user: "{{ postgres_user }}"
+  ansible.builtin.shell:
+    cmd: "psql -f {{ sql_script_dest }}"
+  environment:
+    PGPASSWORD: "{{ db_password }}"
+
+- name: Configure PostgreSQL to listen on all interfaces
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_conf_path }}"
+    regexp: '^#?listen_addresses\s*='  
+    line: "listen_addresses = '*'"    
+  notify: Restart PostgreSQL
+
+- name: Configure PostgreSQL client authentication
+  become: true
+  ansible.builtin.template:
+    src: "{{ pg_hba_template_src }}"
+    dest: "{{ pg_hba_conf_path }}"
+  notify: Restart PostgreSQL
+
+- name: Open PostgreSQL port in firewall
+  become: true
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ postgresql_port }}"
+    jump: ACCEPT

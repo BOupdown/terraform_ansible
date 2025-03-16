@@ -1,0 +1,13 @@
+---
+- name: Déployer PostgreSQL
+  hosts: bdd
+  become: yes
+  roles:
+    - postgres
+
+- name: Déployer FastAPI
+  hosts: app
+  become: yes
+  roles:
+    - fastApi
+

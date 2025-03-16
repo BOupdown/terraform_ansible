@@ -1,0 +1,12 @@
+ALTER USER cytech_usr WITH SUPERUSER;
+
+\c {{ db_name }};
+
+CREATE TABLE IF NOT EXISTS {{ table_name }} (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+INSERT INTO {{ table_name }} (name) VALUES ('{{ user_name }}');
+
+SELECT * FROM {{ table_name }};

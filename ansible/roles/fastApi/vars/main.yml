@@ -1,0 +1,49 @@
+prerequisite_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+  - acl
+
+group_name: cytech_grp
+user_name: cytech_usr
+user_password: password
+ssh_key_bits: 2048
+ssh_key_file: .ssh/id_rsa
+
+app_dir: /app
+venv_path: /app/venv
+static_dir: /app/static
+dir_mode: "0755"
+file_mode: "0644"
+
+python_packages:
+  - flask
+  - flask-sqlalchemy
+  - psycopg2-binary
+  - gunicorn
+
+api_src: files/api.py
+api_dest: /app/api.py
+html_src: files/static/index.html
+html_dest: /app/static/index.html
+
+service_file: /etc/systemd/system/flask-api.service
+service_name: flask-api.service
+service_content: |
+  [Unit]
+  Description=Flask API avec Gunicorn
+  After=network.target
+
+  [Service]
+  User={{ user_name }}
+  Group={{ group_name }}
+  WorkingDirectory={{ app_dir }}
+  Environment="PATH={{ venv_path }}/bin:/usr/local/bin:/usr/bin:/bin"
+  Environment="DATABASE_URL=postgresql+psycopg2://{{ user_name }}:{{ user_password }}@192.168.100.121/cytech"
+  ExecStart={{ venv_path }}/bin/gunicorn --workers 3 --bind 0.0.0.0:8080 api:app
+  Restart=always
+
+  [Install]
+  WantedBy=multi-user.target
+
+api_url: "http://192.168.100.120:8080/api/noms"

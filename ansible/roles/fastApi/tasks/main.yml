@@ -1,0 +1,98 @@
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name: "{{ prerequisite_packages }}"
+    state: present
+    update_cache: yes
+
+- name: Créer un groupe nommé cytech_grp
+  ansible.builtin.group:
+    name: "{{ group_name }}"
+    state: present
+
+- name: Créer un utilisateur cytech_usr avec mot de passe haché
+  ansible.builtin.user:
+    name: "{{ user_name }}"
+    password: "{{ user_password }}"
+    group: "{{ group_name }}"
+    generate_ssh_key: yes
+    ssh_key_bits: "{{ ssh_key_bits }}"
+    ssh_key_file: "{{ ssh_key_file }}"
+    state: present
+
+- name: Ensure /app directory exists with correct permissions
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ user_name }}"
+    group: "{{ group_name }}"
+    mode: "{{ dir_mode }}"
+
+- name: Créer un environnement virtuel dans /app/venv
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ venv_path }}"
+    creates: "{{ venv_path }}/bin/activate"
+  become_user: "{{ user_name }}"
+
+- name: Install Python dependencies in virtual environment
+  ansible.builtin.pip:
+    name: "{{ python_packages }}"
+    virtualenv: "{{ venv_path }}"
+    state: present
+  become_user: "{{ user_name }}"
+
+- name: Ensure /app/static directory exists
+  ansible.builtin.file:
+    path: "{{ static_dir }}"
+    state: directory
+    owner: "{{ user_name }}"
+    group: "{{ group_name }}"
+    mode: "{{ dir_mode }}"
+
+- name: Copy Flask API file
+  ansible.builtin.copy:
+    src: "{{ api_src }}"
+    dest: "{{ api_dest }}"
+    owner: "{{ user_name }}"
+    group: "{{ group_name }}"
+    mode: "{{ file_mode }}"
+
+- name: Copy static HTML file
+  ansible.builtin.copy:
+    src: "{{ html_src }}"
+    dest: "{{ html_dest }}"
+    owner: "{{ user_name }}"
+    group: "{{ group_name }}"
+    mode: "{{ file_mode }}"
+
+- name: Créer le fichier de service systemd
+  ansible.builtin.copy:
+    dest: "{{ service_file }}"
+    content: "{{ service_content }}"
+    owner: root
+    group: root
+    mode: "{{ file_mode }}"
+
+- name: Recharger systemd pour prendre en compte le nouveau service
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Démarrer et activer le service Flask API
+  ansible.builtin.systemd:
+    name: "{{ service_name }}"
+    state: restarted
+    enabled: yes
+
+- name: Récupérer les données de l'API Flask
+  ansible.builtin.uri:
+    url: "{{ api_url }}"
+    method: GET
+    return_content: yes
+    status_code: 200
+  register: result
+  retries: 5
+  delay: 5
+  until: result.status == 200
+
+- name: Afficher les données récupérées
+  ansible.builtin.debug:
+    msg: "{{ result.content }}"

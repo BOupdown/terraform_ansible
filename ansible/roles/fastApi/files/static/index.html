@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 8px; background-color: #f4f4f4; margin-bottom: 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <ul id="name-list"></ul>
+    <script>
+        fetch('/api/noms')
+            .then(response => {
+                if (!response.ok) throw new Error('Erreur réseau ou serveur');
+                return response.json();
+            })
+            .then(names => {
+                const list = document.getElementById('name-list');
+                if (names.length === 0) list.innerHTML = '<li>Aucun nom trouvé</li>';
+                else names.forEach(name => {
+                    const li = document.createElement('li');
+                    li.textContent = `Hello ${name}`; // Ajout de "Hello" avant chaque nom
+                    list.appendChild(li);
+                });
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                document.getElementById('name-list').innerHTML = `<li>Erreur: ${error.message}</li>`;
+            });
+    </script>
+</body>
+</html>
