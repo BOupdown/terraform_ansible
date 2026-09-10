@@ -10,4 +10,6 @@ Url : http://192.168.100.120:8080
 
 # Arrêter  terraform
 
-terraform destroy# Terraform Project
+```sh
+terraform destroy
+```
